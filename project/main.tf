@@ -1,6 +1,6 @@
 resource "google_compute_instance" "default" {
   name         = "my-vm"
-  machine_type = "n1-standard-1"
+  machine_type = "e2-micro"
   zone         = "us-central1-a"
 
   boot_disk {
