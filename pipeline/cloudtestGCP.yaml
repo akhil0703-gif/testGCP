@@ -6,7 +6,7 @@ steps:
     entrypoint: 'sh'
     args: 
       - '-c'
-      - 'terraform init'
+      - 'terraform init -upgrade'
 
   # Step 2: Run Terraform Plan
   - id: 'terraform-plan'
