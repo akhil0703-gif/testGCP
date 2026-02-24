@@ -1,45 +1,81 @@
-steps:
-  # Step 1: Initialize Terraform
-  - id: 'terraform-init'
-    name: 'hashicorp/terraform:latest'
-    dir: 'project'
-    entrypoint: 'sh'
-    args: 
-      - '-c'
-      - 'terraform init -upgrade'
+name: $(BuildDefinitionName)_$(date:yyyyMMdd)$(rev:.r)
 
-  # Step 2: Run Terraform Plan
-  - id: 'terraform-plan'
-    name: 'hashicorp/terraform:latest'
-    dir: 'project'
-    entrypoint: 'sh'
-    args: 
-      - '-c'
-      - |
-        terraform plan \
-        -var="gcp_project_id=${_GCP_PROJECT_ID}" \
-        -var="vpc_name=${_VPC_NAME}"
+trigger: none
 
-  # Step 3: Run Terraform Apply
-   #- id: 'terraform-apply'
-    #name: 'hashicorp/terraform:latest'
-    #dir: 'project'
-    #entrypoint: 'sh'
-    #args: 
-      #- '-c'
-      #- |
-        #terraform apply -auto-approve \
-        #-var="gcp_project_id=${_GCP_PROJECT_ID}" \
-        #-var="vpc_name=${_VPC_NAME}"
+pr: none
 
-  # Step 4: Run Terraform Destroy (Use with caution!)
-  #- id: 'terraform-destroy'
-    #name: 'hashicorp/terraform:latest'
-    #dir: 'project'
-    #entrypoint: 'sh'
-    #args: 
-      #- '-c'
-      #- |
-        #terraform destroy -auto-approve \
-        #-var="gcp_project_id=${_GCP_PROJECT_ID}" \
-        #-var="vpc_name=${_VPC_NAME}"
+variables:
+  # Variable group containing development environment settings
+  - group: vg-tibco-integration-dev-deploy
+
+
+parameters:
+  - name: tf_plan
+    type: boolean
+    default: False
+  - name: tf_apply
+    type: boolean
+    default: False
+  - name: tf_destroy
+    type: boolean
+    default: False
+
+pool:
+  vmImage: 'windows-2022'
+
+stages:
+  - stage: terraform_validate
+    jobs:
+      - template: templates/terraform-validate.yml
+        parameters:
+          backendServiceArm: $(backendServiceArm)
+          backendAzureRmSubscriptionId: $(backendAzureRmSubscriptionId)
+          backendAzureRmResourceGroupName: $(backendAzureRmResourceGroupName)
+          backendAzureRmStorageAccountName: $(backendAzureRmStorageAccountName)
+          backendAzureRmContainerName: $(backendAzureRmContainerName)
+          backendAzureRmKey: $(backendAzureRmKey)
+          rootFolder: $(rootFolder)
+
+  - stage: terraform_plan
+    dependsOn: [terraform_validate]
+    condition: and(succeeded(), ${{ eq(parameters.tf_plan , True) }})
+    jobs:
+      - template: templates/terraform-plan.yml
+        parameters:
+          backendServiceArm: $(backendServiceArm)
+          backendAzureRmSubscriptionId: $(backendAzureRmSubscriptionId)
+          backendAzureRmResourceGroupName: $(backendAzureRmResourceGroupName)
+          backendAzureRmStorageAccountName: $(backendAzureRmStorageAccountName)
+          backendAzureRmContainerName: $(backendAzureRmContainerName)
+          backendAzureRmKey: $(backendAzureRmKey)
+          rootFolder: $(rootFolder)
+          tfvars: $(tfvars)
+
+  - stage: terraform_apply
+    dependsOn: [terraform_plan]
+    condition: and(succeeded(), ${{ eq(parameters.tf_apply , True) }})
+    jobs:
+      - template: templates/terraform-apply.yml
+        parameters:
+          backendServiceArm: $(backendServiceArm)
+          backendAzureRmSubscriptionId: $(backendAzureRmSubscriptionId)
+          backendAzureRmResourceGroupName: $(backendAzureRmResourceGroupName)
+          backendAzureRmStorageAccountName: $(backendAzureRmStorageAccountName)
+          backendAzureRmContainerName: $(backendAzureRmContainerName)
+          backendAzureRmKey: $(backendAzureRmKey)
+          rootFolder: $(rootFolder)
+          tfvars: $(tfvars)
+
+  - stage: terraform_destroy
+    condition: eq(${{ parameters.tf_destroy }}, True)
+    jobs:
+      - template: templates/terraform-destroy.yml
+        parameters:
+          backendServiceArm: $(backendServiceArm)
+          backendAzureRmSubscriptionId: $(backendAzureRmSubscriptionId)
+          backendAzureRmResourceGroupName: $(backendAzureRmResourceGroupName)
+          backendAzureRmStorageAccountName: $(backendAzureRmStorageAccountName)
+          backendAzureRmContainerName: $(backendAzureRmContainerName)
+          backendAzureRmKey: $(backendAzureRmKey)
+          rootFolder: $(rootFolder)
+          tfvars: $(tfvars)
