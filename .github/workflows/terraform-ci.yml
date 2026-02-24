@@ -6,11 +6,11 @@ on:
       rootFolder:
         description: 'Path to Terraform root directory'
         required: true
-        default: '/project'
+        default: './project'
       tfvars:
         description: 'Path to .tfvars file'
         required: true
-        default: 'parameters/dev-terrafrom.tfvars'
+        default: './project/parameters/dev-terrafrom.tfvars'
       action:
         description: 'Terraform action to perform'
         required: true
