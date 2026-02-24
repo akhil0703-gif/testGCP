@@ -1,4 +1,5 @@
 gcp_project_id = "testproject-488314"
-vpc_name       = "my-test-vpc"
-region         = "asia-south1"
+vpc_name       = "my-github-vpc"
+region         = "us-central1"
+zone           = "us-central1-a"
 machine_type   = "e2-micro"
