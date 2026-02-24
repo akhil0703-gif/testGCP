@@ -14,7 +14,7 @@ on:
       action:
         description: 'Terraform action to perform'
         required: true
-        default: 'plan' # Changed default to plan
+        default: 'full-lifecycle-test' 
         type: choice
         options:
           - validate
@@ -22,13 +22,14 @@ on:
           - plan
           - apply
           - destroy
+          # NEW: Added the master sequence option
+          - full-lifecycle-test 
 
 jobs:
-  terraform-gcp-execution: # Renamed job since it is no longer offline
+  terraform-gcp-execution:
     name: "Execute Terraform Task on GCP"
     runs-on: ubuntu-latest
     
-    # CRITICAL: These permissions are required for Workload Identity Federation (Keyless Auth)
     permissions:
       contents: 'read'
       id-token: 'write'
@@ -37,11 +38,10 @@ jobs:
       - name: "Checkout Code"
         uses: actions/checkout@v4
 
-      # NEW: Keyless Authentication
       - name: "Authenticate to Google Cloud"
         uses: google-github-actions/auth@v2
         with:
-          # Replace these placeholders with the string from your Cloud Shell script
+          # Keep your exact provider and service account strings here
           workload_identity_provider: 'projects/257546161875/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
           service_account: 'github-actions-sa@testproject-488314.iam.gserviceaccount.com'
 
@@ -49,7 +49,6 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: "Terraform Init"
-        # Removed -backend=false so it connects to your GCS state bucket
         run: terraform init -upgrade
         working-directory: ${{ github.event.inputs.rootFolder }}
 
@@ -59,25 +58,24 @@ jobs:
         working-directory: ${{ github.event.inputs.rootFolder }}
 
       - name: "Run Terraform Validate"
-        if: ${{ github.event.inputs.action == 'validate' }}
+        if: ${{ github.event.inputs.action == 'validate' || github.event.inputs.action == 'full-lifecycle-test' }}
         run: terraform validate
         working-directory: ${{ github.event.inputs.rootFolder }}
 
-      # NEW: Terraform Plan
       - name: "Run Terraform Plan"
-        if: ${{ github.event.inputs.action == 'plan' }}
-        # Notice how it dynamically uses your tfvars input path
+        # Runs if 'plan' OR 'full-lifecycle-test' is selected
+        if: ${{ github.event.inputs.action == 'plan' || github.event.inputs.action == 'full-lifecycle-test' }}
         run: terraform plan -var-file="${{ github.event.inputs.tfvars }}"
         working-directory: ${{ github.event.inputs.rootFolder }}
 
-      # NEW: Terraform Apply
       - name: "Run Terraform Apply"
-        if: ${{ github.event.inputs.action == 'apply' }}
+        # Runs if 'apply' OR 'full-lifecycle-test' is selected
+        if: ${{ github.event.inputs.action == 'apply' || github.event.inputs.action == 'full-lifecycle-test' }}
         run: terraform apply -auto-approve -var-file="${{ github.event.inputs.tfvars }}"
         working-directory: ${{ github.event.inputs.rootFolder }}
 
-      # NEW: Terraform Destroy
       - name: "Run Terraform Destroy"
-        if: ${{ github.event.inputs.action == 'destroy' }}
+        # The always() command is critical here!
+        if: ${{ always() && (github.event.inputs.action == 'destroy' || github.event.inputs.action == 'full-lifecycle-test') }}
         run: terraform destroy -auto-approve -var-file="${{ github.event.inputs.tfvars }}"
         working-directory: ${{ github.event.inputs.rootFolder }}
