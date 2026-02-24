@@ -22,9 +22,17 @@ on:
           - apply
           - destroy
 
+name: "Terraform CI"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
 jobs:
   terraform-check:
-    name: "Lint and Validate"
+    name: "Lint, Validate and Plan"
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout Code"
@@ -34,8 +42,9 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: "Terraform Init"
-        # Points GitHub to your project folder
-        run: terraform init -backend=false
+        # We now need the backend to be initialized so Plan can read the state
+        # Note: This requires GCP credentials if your bucket is private
+        run: terraform init
         working-directory: ./project
 
       - name: "Terraform Validate"
