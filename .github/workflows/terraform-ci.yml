@@ -1,4 +1,4 @@
-name: Deploy Terraform Infrastructure
+name: "Deploy Terraform Infrastructure"
 
 on:
   workflow_dispatch:
@@ -10,29 +10,19 @@ on:
       tfvars:
         description: 'Path to .tfvars file'
         required: true
-        default: './project/parameters/dev-terrafrom.tfvars'
+        default: './project/parameters/dev-terraform.tfvars'
       action:
         description: 'Terraform action to perform'
         required: true
-        default: 'plan'
+        default: 'validate'
         type: choice
         options:
           - validate
-          - plan
-          - apply
-          - destroy
-
-name: "Terraform CI"
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+          - fmt
 
 jobs:
-  terraform-check:
-    name: "Lint, Validate and Plan"
+  terraform-offline-execution:
+    name: "Execute Offline Terraform Task"
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout Code"
@@ -41,20 +31,20 @@ jobs:
       - name: "Setup Terraform"
         uses: hashicorp/setup-terraform@v3
 
-      - name: "Terraform Init"
-        # We now need the backend to be initialized so Plan can read the state
-        # Note: This requires GCP credentials if your bucket is private
-        run: terraform init
-        working-directory: ./project
+      - name: "Terraform Init (Backend Disabled)"
+        # We still need to initialize offline so Terraform downloads the provider plugins
+        run: terraform init -backend=false
+        # Notice how we use the input variable here dynamically!
+        working-directory: ${{ github.event.inputs.rootFolder }}
 
-      - name: "Terraform Validate"
+      - name: "Run Terraform Format Check"
+        # This step ONLY runs if you select 'fmt' from the dropdown
+        if: ${{ github.event.inputs.action == 'fmt' }}
+        run: terraform fmt -check
+        working-directory: ${{ github.event.inputs.rootFolder }}
+
+      - name: "Run Terraform Validate"
+        # This step ONLY runs if you select 'validate' from the dropdown
+        if: ${{ github.event.inputs.action == 'validate' }}
         run: terraform validate
-        working-directory: ./project
-
-      - name: "Terraform Plan"
-        # This shows you the "Dry Run" results in the GitHub Actions logs
-        run: |
-          terraform plan \
-          -var="gcp_project_id=${{ secrets.GCP_PROJECT_ID }}" \
-          -var="vpc_name=ci-test-vpc"
-        working-directory: ./project
+        working-directory: ${{ github.event.inputs.rootFolder }}
