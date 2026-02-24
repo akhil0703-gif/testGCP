@@ -41,3 +41,11 @@ jobs:
       - name: "Terraform Validate"
         run: terraform validate
         working-directory: ./project
+
+      - name: "Terraform Plan"
+        # This shows you the "Dry Run" results in the GitHub Actions logs
+        run: |
+          terraform plan \
+          -var="gcp_project_id=${{ secrets.GCP_PROJECT_ID }}" \
+          -var="vpc_name=ci-test-vpc"
+        working-directory: ./project
