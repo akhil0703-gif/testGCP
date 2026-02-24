@@ -15,3 +15,8 @@ resource "google_compute_instance" "default" {
     access_config {}
   }
 }
+
+resource "google_compute_network" "custom_vpc" {
+  name                    = var.vpc_name
+  auto_create_subnetworks = false 
+}
