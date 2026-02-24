@@ -10,7 +10,7 @@ variable "gcp_region" {
 variable "zone" {
   description = "The GCP zone for the standalone VM"
   type        = string
-  default     = "asia-south1-a" 
+  default     = "us-central1-a" 
 }
 
 variable "vpc_name" {
