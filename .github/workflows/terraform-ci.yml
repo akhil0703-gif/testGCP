@@ -10,7 +10,7 @@ on:
       tfvars:
         description: 'Path to .tfvars file'
         required: true
-        default: './project/parameters/dev-terraform.tfvars'
+        default: 'parameters/dev-terraform.tfvars'
       action:
         description: 'Terraform action to perform'
         required: true
